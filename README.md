@@ -16,4 +16,16 @@ The application optimizes paths through a multi-stage routing pipeline:
 **Compile the project manually using this command:**
 ```bash
 gcc main.c route.c -o graph_optimizer -lm
+```
 
+## Visual Graph Export System
+The `exportVisualGraph()` function generates a visual browser-based representation of the road network and the calculated delivery route.
+
+It receives:
+- `Graph* map` — the full road graph
+- `Route* finalRoute` — the optimized delivery path
+
+and creates:
+```html
+map_view.html
+``
