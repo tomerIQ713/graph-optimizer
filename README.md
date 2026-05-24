@@ -32,6 +32,5 @@ map_view.html
 
 ## Visual Output
 
-Here is the final optimized route visualization:
 
 ![Graph Screenshot](images/graph.png)
