@@ -22,6 +22,30 @@ int findClosestVertex(Graph* map, Coordinate coord) {
     return closestVertexIndex;
 }
 
+void assignOrderPriorities(int* orderPriorities, int numOrders) {
+    if (orderPriorities == NULL || numOrders <= ZERO) return;
+
+    printf("\n=== ORDER PRIORITY ASSIGNMENT ===\n");
+    printf("Assigning priorities to %d orders...\n\n", numOrders);
+
+
+    for (int i = ZERO; i < numOrders; i++) {
+        if (i == ZERO) {
+            orderPriorities[i] = HIGH_PRIORITY;
+            printf("Order %d: HIGH PRIORITY (multiplier: %.1f)\n", i, HIGH_PRIORITY_WEIGHT);
+        }
+        else if (i < numOrders - ONE) {
+            orderPriorities[i] = MEDIUM_PRIORITY;
+            printf("Order %d: MEDIUM PRIORITY (multiplier: %.1f)\n", i, MEDIUM_PRIORITY_WEIGHT);
+        }
+        else {
+            orderPriorities[i] = LOW_PRIORITY;
+            printf("Order %d: LOW PRIORITY (multiplier: %.1f)\n", i, LOW_PRIORITY_WEIGHT);
+        }
+    }
+    printf("\n");
+}
+
 int main()
 {
     MainGraph* mainGraph = loadAreaGraph("graph.txt");
@@ -32,6 +56,9 @@ int main()
     Graph* map = mainGraph->graph;
     Coordinate* infoCoordinates = mainGraph->infoCoordinates;
     int numOrders = mainGraph->numOrders;
+    int* orderPriorities = mainGraph->orderPriorities;
+
+    assignOrderPriorities(orderPriorities, numOrders);
 
     Route* restaurantRoute;
     Route* mainRoute;
@@ -50,14 +77,13 @@ int main()
         orderVertices[i] = findClosestVertex(map, infoCoordinates[TWO + i]);
     }
 
-    Graph* ordersGraph = buildOrdersGraph(map, infoCoordinates + TWO, numOrders, infoCoordinates[ONE]);
+    Graph* ordersGraph = buildOrdersGraph(map, infoCoordinates + TWO, numOrders, infoCoordinates[ONE], orderPriorities);
 
-    int restaurantTSPIndex = numOrders;
-    mainRoute = getMostEfficientDeliveryWay(ordersGraph, restaurantTSPIndex);
+    mainRoute = getMostEfficientDeliveryWay(ordersGraph, numOrders, orderPriorities, numOrders);
 
     resultRoute = combineRoutes(map, restaurantRoute, mainRoute, orderVertices, restaurantVertex);
 
-    exportVisualGraph(map, restaurantRoute);
+    exportVisualGraph(map, resultRoute, restaurantVertex, orderVertices, numOrders, orderPriorities);
     outputRoute(resultRoute);
 
     free(orderVertices);
@@ -66,7 +92,6 @@ int main()
     freeRoute(resultRoute);
     freeGraph(ordersGraph);
     freeMainGraph(mainGraph);
-    
+
     return ZERO;
 }
- 
