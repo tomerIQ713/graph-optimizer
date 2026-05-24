@@ -13,7 +13,7 @@ The application optimizes paths through a multi-stage routing pipeline:
 - Download the repository files.
 - Ensure you have a C compiler (like `gcc`) installed on your system.
 
-**Compile the project manually using this command:**
+**Compile the project using this command:**
 ```bash
 gcc main.c -o graph_optimizer -lm
 ```
