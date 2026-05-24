@@ -7,6 +7,20 @@ static double calculateDistance(Coordinate c1, Coordinate c2) {
     return sqrt(dx * dx + dy * dy);
 }
 
+// Helper function to get priority weight multiplier
+static double getPriorityWeight(int priority) {
+    switch (priority) {
+    case HIGH_PRIORITY:
+        return HIGH_PRIORITY_WEIGHT;
+    case MEDIUM_PRIORITY:
+        return MEDIUM_PRIORITY_WEIGHT;
+    case LOW_PRIORITY:
+        return LOW_PRIORITY_WEIGHT;
+    default:
+        return LOW_PRIORITY_WEIGHT;
+    }
+}
+
 // Helper function to find the unvisited vertex with minimum distance
 static int findMinDistVertex(int numVertices, int* distances, int* visited) {
     int minDist = INFINITY_DIST;
@@ -222,8 +236,8 @@ static void singleSourceDijkstra(Graph* graph, int sourceVertex, int* distances)
     free(visited);
 }
 
-/* buildOrdersGraph Engine */
-Graph* buildOrdersGraph(Graph* mainGraph, Coordinate* orders, int numOrders, Coordinate restaurant) {
+/* buildOrdersGraph Engine with Priority Support */
+Graph* buildOrdersGraph(Graph* mainGraph, Coordinate* orders, int numOrders, Coordinate restaurant, int* orderPriorities) {
     if (mainGraph == NULL || orders == NULL || numOrders <= ZERO) {
         return NULL;
     }
@@ -246,131 +260,87 @@ Graph* buildOrdersGraph(Graph* mainGraph, Coordinate* orders, int numOrders, Coo
         return NULL;
     }
 
-    for (int i = ZERO; i <= numOrders; i++) {
+    for (int i = ZERO; i < numOrders + ONE; i++) {
         ordersGraph->adjLists[i] = NULL;
     }
 
-    ordersGraph->vertexCoordinates = (Coordinate*)malloc((numOrders + ONE) * sizeof(Coordinate));
-    if (ordersGraph->vertexCoordinates == NULL) {
+    // Restaurant is at index numOrders
+    int* allVertices = (int*)malloc((numOrders + ONE) * sizeof(int));
+    if (allVertices == NULL) {
         free(ordersGraph->adjLists);
         free(ordersGraph);
         return NULL;
     }
 
+    // Map order coordinates to vertices
     for (int i = ZERO; i < numOrders; i++) {
-        ordersGraph->vertexCoordinates[i] = orders[i];
+        allVertices[i] = findClosestVertex(mainGraph, orders[i]);
     }
-    ordersGraph->vertexCoordinates[numOrders] = restaurant;
+    allVertices[numOrders] = restaurantVertex;
 
-    int* orderVertices = (int*)malloc(numOrders * sizeof(int));
-    if (orderVertices == NULL) {
-        free(ordersGraph->vertexCoordinates);
-        free(ordersGraph->adjLists);
-        free(ordersGraph);
-        return NULL;
-    }
+    ordersGraph->vertexCoordinates = NULL;
 
-    for (int i = 0; i < numOrders; i++) {
-        orderVertices[i] = findClosestVertex(mainGraph, orders[i]);
-        if (orderVertices[i] == NEG_ONE) {
-            free(orderVertices);
-            free(ordersGraph->vertexCoordinates);
-            free(ordersGraph->adjLists);
-            free(ordersGraph);
-            return NULL;
-        }
-    }
-
-    int** distanceMatrix = (int**)malloc((numOrders + ONE) * sizeof(int*));
-    if (distanceMatrix == NULL) {
-        free(orderVertices);
-        free(ordersGraph->vertexCoordinates);
-        free(ordersGraph->adjLists);
-        free(ordersGraph);
-        return NULL;
-    }
-
-    for (int i = ZERO; i <= numOrders; i++) {
-        distanceMatrix[i] = (int*)malloc(mainGraph->numVertices * sizeof(int));
-        if (distanceMatrix[i] == NULL) {
-            for (int j = ZERO; j < i; j++) {
-                free(distanceMatrix[j]);
+    // Build TSP subgraph with priority-weighted distances
+    for (int i = ZERO; i < numOrders + ONE; i++) {
+        int* distances = (int*)malloc(mainGraph->numVertices * sizeof(int));
+        if (distances == NULL) {
+            free(allVertices);
+            for (int j = ZERO; j < numOrders + ONE; j++) {
+                Node* current = ordersGraph->adjLists[j];
+                while (current != NULL) {
+                    Node* nextNode = current->next;
+                    free(current);
+                    current = nextNode;
+                }
             }
-            free(distanceMatrix);
-            free(orderVertices);
-            free(ordersGraph->vertexCoordinates);
             free(ordersGraph->adjLists);
             free(ordersGraph);
             return NULL;
         }
 
-        int sourceVertex = (i == numOrders) ? restaurantVertex : orderVertices[i];
-        singleSourceDijkstra(mainGraph, sourceVertex, distanceMatrix[i]);
-    }
+        singleSourceDijkstra(mainGraph, allVertices[i], distances);
 
-    // Connect pairs
-    for (int i = ZERO; i <= numOrders; i++) {
-        for (int j = ZERO; j <= numOrders; j++) {
-            if (i == j) continue;
+        // Connect to all other order vertices with priority-weighted edges
+        for (int j = ZERO; j < numOrders + ONE; j++) {
+            if (i != j) {
+                int targetVertex = allVertices[j];
+                int baseDist = distances[targetVertex];
+                int weightedDist = baseDist;
 
-            int destMainVertex = (j == numOrders) ? restaurantVertex : orderVertices[j];
-            int distance = distanceMatrix[i][destMainVertex];
-
-            if (distance != INFINITY_DIST) {
-                Node* newNode = (Node*)malloc(sizeof(Node));
-                if (newNode == NULL) {
-                    for (int k = ZERO; k <= numOrders; k++) {
-                        free(distanceMatrix[k]);
-                    }
-                    free(distanceMatrix);
-                    free(orderVertices);
-                    free(ordersGraph->vertexCoordinates);
-
-                    for (int k = ZERO; k <= numOrders; k++) {
-                        Node* current = ordersGraph->adjLists[k];
-                        while (current != NULL) {
-                            Node* temp = current;
-                            current = current->next;
-                            free(temp);
-                        }
-                    }
-                    free(ordersGraph->adjLists);
-                    free(ordersGraph);
-                    return NULL;
+                // Apply priority weight to unprioritized orders (destination)
+                if (j < numOrders && orderPriorities != NULL) {
+                    double priorityMult = getPriorityWeight(orderPriorities[j]);
+                    weightedDist = (int)(baseDist * priorityMult);
                 }
 
-                newNode->vertex = j;
-                newNode->weight = distance;
-                newNode->next = ordersGraph->adjLists[i];
-                ordersGraph->adjLists[i] = newNode;
+                Node* newNode = (Node*)malloc(sizeof(Node));
+                if (newNode != NULL) {
+                    newNode->vertex = j;
+                    newNode->weight = weightedDist;
+                    newNode->next = ordersGraph->adjLists[i];
+                    ordersGraph->adjLists[i] = newNode;
+                }
             }
         }
+
+        free(distances);
     }
 
-    for (int i = ZERO; i <= numOrders; i++) {
-        free(distanceMatrix[i]);
-    }
-    free(distanceMatrix);
-    free(orderVertices);
-
+    free(allVertices);
     return ordersGraph;
 }
 
-// Helper: Calculate total distance of a given path
+// Calculate path distance in orders graph
 static int calculatePathDistance(Graph* graph, int* path, int pathLength) {
-    if (path == NULL || pathLength < TWO) {
-        return ZERO;
-    }
-
     int totalDistance = ZERO;
 
     for (int i = ZERO; i < pathLength - ONE; i++) {
-        int fromVertex = path[i];
-        int toVertex = path[i + ONE];
+        int currentVertex = path[i];
+        int nextVertex = path[i + ONE];
 
-        Node* current = graph->adjLists[fromVertex];
+        Node* current = graph->adjLists[currentVertex];
         while (current != NULL) {
-            if (current->vertex == toVertex) {
+            if (current->vertex == nextVertex) {
                 totalDistance += current->weight;
                 break;
             }
@@ -381,7 +351,7 @@ static int calculatePathDistance(Graph* graph, int* path, int pathLength) {
     return totalDistance;
 }
 
-// Helper: Find nearest unvisited neighbor
+// Find nearest neighbor in graph
 static int findNearestNeighbor(Graph* graph, int currentVertex, int* visited, int numVertices) {
     int nearestVertex = NEG_ONE;
     int minDistance = INFINITY_DIST;
@@ -398,18 +368,18 @@ static int findNearestNeighbor(Graph* graph, int currentVertex, int* visited, in
     return nearestVertex;
 }
 
-// Helper: Reverse a portion of the tour (for 2-opt swap)
-static void reverseTourSegment(int* tour, int i, int j) {
-    while (i < j) {
-        int temp = tour[i];
-        tour[i] = tour[j];
-        tour[j] = temp;
-        i++;
-        j--;
+// Reverse tour segment for 2-opt
+static void reverseTourSegment(int* tour, int start, int end) {
+    while (start < end) {
+        int temp = tour[start];
+        tour[start] = tour[end];
+        tour[end] = temp;
+        start++;
+        end--;
     }
 }
 
-// Nearest Neighbor heuristic: Greedy tour construction
+// Nearest neighbor heuristic
 static int* nearestNeighborTour(Graph* graph, int startVertex, int numVertices, int* tourLength) {
     int* tour = (int*)malloc(numVertices * sizeof(int));
     if (tour == NULL) {
@@ -466,12 +436,12 @@ static void twoOptImprovement(Graph* graph, int* tour, int tourLength) {
         iterations++;
 
         for (int i = ZERO; i < tourLength - TWO; i++) {
-            for (int j = i + TWO; j < tourLength - ONE; j++) { 
+            for (int j = i + TWO; j < tourLength - ONE; j++) {
 
                 int v1 = tour[i];
                 int v2 = tour[i + ONE];
                 int v3 = tour[j];
-                int v4 = tour[j + ONE]; 
+                int v4 = tour[j + ONE];
 
                 int weight_v1_v2 = INFINITY_DIST;
                 int weight_v3_v4 = INFINITY_DIST;
@@ -518,8 +488,8 @@ static void twoOptImprovement(Graph* graph, int* tour, int tourLength) {
     }
 }
 
-/* TSP Calculation Solver Framework Entrypoint */
-Route* getMostEfficientDeliveryWay(Graph* ordersGraph, int startVertex) {
+/* TSP Calculation Solver Framework Entrypoint with Priority Support */
+Route* getMostEfficientDeliveryWay(Graph* ordersGraph, int startVertex, int* orderPriorities, int numOrders) {
     if (ordersGraph == NULL || ordersGraph->numVertices < TWO) {
         return NULL;
     }
