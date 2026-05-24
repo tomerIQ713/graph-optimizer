@@ -6,7 +6,7 @@ This setup demonstrates principles of graph theory, adjacency list memory struct
 The application optimizes paths through a multi-stage routing pipeline:
 1. **Best Route to Restaurant:** Uses path-finding to navigate the driver from their starting location to the kitchen coordinates.
 2. **TSP Order Matrix:** Builds a dynamic graph focusing strictly on delivery order coordinates.
-3. **Optimized Delivery Loop:** Solves the most efficient sequence to visit all drop points.
+3. **Priority-Aware Delivery Optimization:** Solves the most efficient sequence while dynamically prioritizing urgent deliveries.
 4. **Route Splicing:** Combines and outputs a unified, complete trajectory.
 
 ## Installation
@@ -17,6 +17,39 @@ The application optimizes paths through a multi-stage routing pipeline:
 ```bash
 gcc main.c -o graph_optimizer -lm
 ```
+
+## Features
+- Directed weighted road graph
+- Priority-aware delivery routing
+- Traveling Salesperson Problem (TSP) optimization
+- Dynamic adjacency list graph structure
+- Browser-based graph rendering
+- Multi-stage path optimization pipeline
+
+## Delivery Priority System
+
+Orders are assigned delivery priorities:
+
+- HIGH Priority
+- MEDIUM Priority
+- LOW Priority
+
+The optimizer adjusts routing cost dynamically to prefer urgent deliveries first while still minimizing total travel distance.
+
+## Directed Road System
+
+The graph supports directional roads using adjacency lists.
+
+This allows the simulation of:
+- One-way streets
+- Restricted traffic directions
+- Realistic city routing
+- Direction-sensitive shortest paths
+
+Each road edge stores:
+- Destination vertex
+- Distance weight
+- Direction
 
 ## Visual Graph Export System
 The project has a visual browser-based representation of the road network and the calculated delivery route.
@@ -30,7 +63,11 @@ and creates:
 map_view.html
 ```
 
-## Visual Output
-
+## Priority-Aware Directed Route Visualization
+The visualization displays:
+- Directed roads using inline arrows
+- Priority-colored delivery nodes
+- Optimized traversal order
+- Distinct routing stages
 
 ![Graph Screenshot](images/graph.png)
