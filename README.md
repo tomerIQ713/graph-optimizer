@@ -28,5 +28,3 @@ It receives:
 and creates:
 ```html
 map_view.html
-
-<img width="1081" height="764" alt="image" src="https://github.com/user-attachments/assets/0bc22e0f-e66f-42b5-84fb-ab2391fd63a3" />
