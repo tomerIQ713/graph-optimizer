@@ -1,4 +1,4 @@
-# Graph Path Optimizer
+<img width="1081" height="764" alt="image" src="https://github.com/user-attachments/assets/8dc902e5-2557-4a70-82fd-c9f1af26b6d6" /># Graph Path Optimizer
 
 A delivery route optimization system built in C. The project calculates the most efficient route for a delivery driver to pick up an order from a restaurant and deliver it to multiple destinations using a Traveling Salesperson Problem (TSP) approach.  
 This setup demonstrates principles of graph theory, adjacency list memory structures, path-finding algorithms, and data parsing.
@@ -28,3 +28,5 @@ It receives:
 and creates:
 ```html
 map_view.html
+
+<img width="1081" height="764" alt="image" src="https://github.com/user-attachments/assets/41cb20cb-aba8-4b11-9a0e-46f4004f5747" />
