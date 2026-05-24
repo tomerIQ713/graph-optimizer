@@ -28,4 +28,3 @@ It receives:
 and creates:
 ```html
 map_view.html
-``
