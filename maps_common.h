@@ -21,6 +21,14 @@
 #define NEG_ONE          -1
 #define ESTIMATED_PADDING 1
 
+#define HIGH_PRIORITY 0
+#define MEDIUM_PRIORITY 1
+#define LOW_PRIORITY 2
+
+#define HIGH_PRIORITY_WEIGHT 1.0      
+#define MEDIUM_PRIORITY_WEIGHT 1.2   
+#define LOW_PRIORITY_WEIGHT 1.5       
+
 typedef struct {
     double x;
     double y;
@@ -41,7 +49,8 @@ typedef struct Graph {
 typedef struct MainGraph {
     Graph* graph;
     Coordinate* infoCoordinates;
-    int numOrders; 
+    int numOrders;
+    int* orderPriorities;  // Array storing priority for each order
 } MainGraph;
 
 typedef struct {
@@ -56,15 +65,16 @@ MainGraph* loadAreaGraph(char* fileName);
 Route* bestRouteToRestaurant(Graph* mainGraph, Coordinate* infoCoordinates);
 
 Graph* buildOrdersGraph(Graph* mainGraph, Coordinate* orders,
-    int numOrders, Coordinate restaurant);
+    int numOrders, Coordinate restaurant, int* orderPriorities);
 
-Route* getMostEfficientDeliveryWay(Graph* ordersGraph, int startVertex);
+Route* getMostEfficientDeliveryWay(Graph* ordersGraph, int startVertex, int* orderPriorities, int numOrders);
 
 Route* combineRoutes(Graph* mainGraph, Route* routeToRestaurant,
     Route* deliveryRoute, int* orderVertices, int restaurantVertex);
 
 void outputRoute(Route* resultRoute);
-void exportVisualGraph(Graph* map, Route* finalRoute);
+void exportVisualGraph(Graph* map, Route* finalRoute,
+    int restaurantVertex, int* orderVertices, int numOrders, int* orderPriorities);
 
 void freeGraph(Graph* graph);
 void freeRoute(Route* route);
