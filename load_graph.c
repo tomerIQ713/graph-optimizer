@@ -1,4 +1,3 @@
-
 #include "maps_common.h"
 
 MainGraph* loadAreaGraph(char* fileName) {
@@ -19,14 +18,13 @@ MainGraph* loadAreaGraph(char* fileName) {
     mainGraph->graph = NULL;
     mainGraph->infoCoordinates = NULL;
     mainGraph->numOrders = 0;
+    mainGraph->orderPriorities = NULL;
 
     char line[256];
     int numVertices = 0;
     int numOrders = 0;
 
-    // 1. Read Metadata configuration lines
     while (fgets(line, sizeof(line), file)) {
-        // Skip comment lines and empty layout rows safely
         if (line[0] == '#' || line[0] == '\n' || line[0] == '\r') continue;
         if (sscanf(line, "%d %d", &numVertices, &numOrders) == 2) {
             break;
@@ -35,7 +33,6 @@ MainGraph* loadAreaGraph(char* fileName) {
 
     mainGraph->numOrders = numOrders;
 
-    // Allocate the underlying sub-graph data framework
     mainGraph->graph = (Graph*)malloc(sizeof(Graph));
     if (mainGraph->graph == NULL) {
         freeMainGraph(mainGraph);
@@ -47,20 +44,27 @@ MainGraph* loadAreaGraph(char* fileName) {
     mainGraph->graph->adjLists = (Node**)calloc(numVertices, sizeof(Node*));
     mainGraph->graph->vertexCoordinates = (Coordinate*)malloc(numVertices * sizeof(Coordinate));
 
-    // Allocate the Special Coordinates tracker array
     // Size = Driver (1) + Restaurant (1) + Orders (numOrders)
     int totalInfoCoords = TWO + numOrders;
     mainGraph->infoCoordinates = (Coordinate*)malloc(totalInfoCoords * sizeof(Coordinate));
 
+    // Allocate priority array for orders
+    mainGraph->orderPriorities = (int*)malloc(numOrders * sizeof(int));
+
     if (mainGraph->graph->adjLists == NULL ||
         mainGraph->graph->vertexCoordinates == NULL ||
-        mainGraph->infoCoordinates == NULL) {
+        mainGraph->infoCoordinates == NULL ||
+        mainGraph->orderPriorities == NULL) {
         freeMainGraph(mainGraph);
         fclose(file);
         return NULL;
     }
 
-    // 2. Load Special Information Positions array
+    // Initialize priorities: default all to LOW_PRIORITY
+    for (int i = 0; i < numOrders; i++) {
+        mainGraph->orderPriorities[i] = LOW_PRIORITY;
+    }
+
     int infoCount = 0;
     while (infoCount < totalInfoCoords && fgets(line, sizeof(line), file)) {
         if (line[0] == '#' || line[0] == '\n' || line[0] == '\r') continue;
@@ -71,7 +75,6 @@ MainGraph* loadAreaGraph(char* fileName) {
         }
     }
 
-    // 3. Load Base Map Physical Intersections Positions
     int vertexCount = 0;
     while (vertexCount < numVertices && fgets(line, sizeof(line), file)) {
         if (line[0] == '#' || line[0] == '\n' || line[0] == '\r') continue;
@@ -87,7 +90,6 @@ MainGraph* loadAreaGraph(char* fileName) {
         }
     }
 
-    // 4. Load Road Network Interconnections Map
     while (fgets(line, sizeof(line), file)) {
         if (line[0] == '#' || line[0] == '\n' || line[0] == '\r') continue;
 
@@ -95,23 +97,15 @@ MainGraph* loadAreaGraph(char* fileName) {
         if (sscanf(line, "%d %d %d", &src, &dest, &weight) == 3) {
             if (src >= 0 && src < numVertices && dest >= 0 && dest < numVertices) {
 
-                // Add forward edge path (src -> dest)
-                Node* newNode1 = (Node*)malloc(sizeof(Node));
-                if (newNode1 != NULL) {
-                    newNode1->vertex = dest;
-                    newNode1->weight = weight;
-                    newNode1->next = mainGraph->graph->adjLists[src];
-                    mainGraph->graph->adjLists[src] = newNode1;
+                // Add ONLY the forward directed edge path (src -> dest)
+                Node* newNode = (Node*)malloc(sizeof(Node));
+                if (newNode != NULL) {
+                    newNode->vertex = dest;
+                    newNode->weight = weight;
+                    newNode->next = mainGraph->graph->adjLists[src];
+                    mainGraph->graph->adjLists[src] = newNode;
                 }
 
-                // Add reversed edge path for undirected maps (dest -> src)
-                Node* newNode2 = (Node*)malloc(sizeof(Node));
-                if (newNode2 != NULL) {
-                    newNode2->vertex = src;
-                    newNode2->weight = weight;
-                    newNode2->next = mainGraph->graph->adjLists[dest];
-                    mainGraph->graph->adjLists[dest] = newNode2;
-                }
             }
         }
     }
