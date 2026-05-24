@@ -8,7 +8,7 @@ void freeGraph(Graph* graph) {
         Node* current = graph->adjLists[i];
         while (current != NULL) {
             Node* nextNode = current->next;
-            free(current); 
+            free(current);
             current = nextNode;
         }
     }
@@ -38,6 +38,10 @@ void freeMainGraph(MainGraph* mainGraph) {
 
     if (mainGraph->infoCoordinates != NULL) {
         free(mainGraph->infoCoordinates);
+    }
+
+    if (mainGraph->orderPriorities != NULL) {
+        free(mainGraph->orderPriorities);
     }
 
     free(mainGraph);
