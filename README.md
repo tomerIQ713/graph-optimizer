@@ -65,9 +65,13 @@ map_view.html
 
 ## Priority-Aware Directed Route Visualization
 The visualization displays:
-- Directed roads using inline arrows
+- Directed\Undirected roads using inline arrows
 - Priority-colored delivery nodes
 - Optimized traversal order
 - Distinct routing stages
 
+Undirected Graph:
 ![Graph Screenshot](images/graph.png)
+
+Directed Graph:
+![Graph Screenshot](images/graph1.png)
